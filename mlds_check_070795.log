@@ -1,0 +1,41 @@
+
+This logfile file has been created  on Fri Jul  7 15:05:42 EDT 1995 
+
+	Hostname:    mlds_ev401
+	Script name: /usr/local/bin/mlds_check.R2
+	Log file:    /tmp/mlds_check_070795.log
+
+It depicts the status of mlds production processes
+and availability of system resources. - SWM
+
+
+Fri Jul  7 15:30:34 EDT 1995	Pinging Hosts in group
+				mlds4_1   	success
+				mlds4_2   	success
+				mlds4_3   	success
+				mlds4_4   	success
+				mlds_as401   	success
+				mlds_db4_1   	success
+				mlds_db4_3   	success
+				mlds_db4_4   	success
+				mlds_db4_5   	success
+				mlds_ev401   	success
+				mlds_ps401   	success
+				goliath   	success
+				sparc10   	success
+
+Fri Jul  7 15:30:36 EDT 1995	Checking Application Server Host mlds_as401
+				mlds_as401 is running processes
+
+Fri Jul  7 15:33:53 EDT 1995	Checking Portfolio Construction Server Host mlds_ps401
+				mlds_ps401 is running processes
+
+Fri Jul  7 15:33:54 EDT 1995	Checking Sybase Running on Sybase Hosts
+				mlds_db4_1   	success
+				mlds_db4_2   	success
+				mlds_db4_3   	success
+				mlds_db4_4   	success
+				mlds_db4_5   	success
+				goliath		success
+
+Fri Jul  7 15:34:01 EDT 1995	Sleeping until next 30 minute cycle...

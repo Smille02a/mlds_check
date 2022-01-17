@@ -1,0 +1,189 @@
+#!/bin/ksh
+##################################################################
+#
+#       Archive Store and Arrival Script
+#       /usr/local/bin/mlds_check.R2
+#
+#       Created:   07/07/95
+#       Modified:  07/07/95
+#
+#       Merrill Lynch
+#       Stephen Miller, SA
+#               Phone:  (212)
+#               Beeper: (800) 225-0256 pin 95684
+#               email:  smiller@ml.com
+#
+#       This file is designed to be run by cron as user mlds 
+#	Monday through Friday, from 0700 until 1700 hours.
+#
+#       It will email one report at 0730, and report errors
+#	throughout the day to mail alias mlds_admin.
+#
+##################################################################
+#
+ping_hosts()
+{
+NOPING=""
+print "\n`date`\tPinging Hosts in group" >> $LOGFILE
+for host in $HOSTS
+do
+	if `ping $host >> /dev/null 2>&1`; then
+		print "\t\t\t\t$host   \tsuccess"
+	else
+		print "\t\t\t\t$host\tfailure"
+		NOPING="$NOPING $host"
+	fi
+done
+if [[ -z "$NOPING" ]]; then
+  ESC_PING=""
+fi
+if [[ -n "$NOPING" ]]; then
+ if [[ -z "$ESC_PING" ]]; then
+  $BEEP $BEEP_PING "mlds Prod Alert: $NOPING unreachable `date +%m%d%y:$HOUR:$MIN`"
+  cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+ else
+  $BEEP $BEEP_PING_ESC "mlds Prod Esca: $NOPING unreachable `date +%m%d%y:$HOUR:$MIN`"
+  cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+ fi
+ESC_PING=1
+fi
+}
+#
+check_as()
+{
+NOAS=""
+print "\n`date`\tChecking Application Server Host $AS_HOST"
+if [ `rsh $AS_HOST ps -auwx |grep spsserv |wc -l` -gt 0 ]; then
+	print "\t\t\t\t$AS_HOST is running processes"
+else
+	print "\t\t\t\t$AS_HOST is not running processes"
+	NOAS="$NOAS $AS_HOST"
+fi
+if [[ -z "$NOAS" ]]; then
+	ESC_AS=""
+fi
+if [[ -n "$NOAS" ]]; then
+  if [[ -z "$ESC_AS"  ]]; then
+    $BEEP $BEEP_AS "mlds Prod Alert: $NOAS not running processes `date +%m%d%y:$HOUR:$MIN`"
+    cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  else
+   $BEEP $BEEP_AS_ESC "mlds Prod Esca: $NOAS not running processes `date +%m%d%y:$HOUR:$MIN`"
+   cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  fi
+ESC_AS=1
+fi
+}
+check_ps()
+{
+NOPS=""
+print "\n`date`\tChecking PCS Host $PS_HOST"
+if [ `rsh $PS_HOST ps -auwx |grep DB_USER_NAME  |wc -l` -gt 10 ]; then
+	 print "\t\t\t\t$PS_HOST is running processes"
+else
+	print "\t\t\t\t$PS_HOST is not running processes"
+	NOPS="$NOPS $PS_HOST"
+fi
+if [[ -z "$NOPS" ]]; then
+	ESC_PS=""
+fi
+if [[ -n "$NOPS"  ]]; then
+  if [[ -z "$ESC_PS"  ]]; then
+	 $BEEP $BEEP_PS "mlds Prod Alert: $NOPS not running processes `date +%m%d%y:$HOUR:$MIN`"
+	cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  else
+	$BEEP $BEEP_PS_ESC "mlds Prod Esca: $NOPS not running processes `date +%m%d%y:$HOUR:$MIN`"
+	cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  fi
+ESC_PS=1
+fi
+}
+check_syb()
+{
+NOSYB=""
+print "\n`date`\tChecking Sybase Running on Sybase Hosts"
+for host in $SYB_HOSTS
+do
+	if [ `rsh $host ps -auwx |grep dataserver |wc -l` -gt 0 ]; then
+	   print "\t\t\t\t$host   \tsuccess"
+	else
+	  print "\t\t\t\t$host\tfailure"
+	  NOSYB="$NOSYB $host"
+	fi
+done
+if [[ -z "$NOSYB" ]]; then
+  ESC_SYB=""
+fi
+if [[ -n "$NOSYB" ]]; then
+  if [[ -z "$ESC_SYB" ]]; then
+   $BEEP $BEEP_SYB "mlds Prod Alert: $NOSYB not running dataserver `date +%m%d%y:$HOUR:$MIN`"
+	cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  else
+   $BEEP $BEEP_SYB_ESC "mlds Prod Esca: $NOSYB not running dataserver `date +%m%d%y:$HOUR:$MIN`"
+	cat $LOGFILE |/usr/ucb/mail -s "mlds Prod ERROR for `date`" mlds_admin >> $LOGFILE
+  fi
+ESC_SYB=1
+fi 
+}
+#
+##################################################################
+## MAIN
+##################################################################
+#
+VERSION="/usr/local/bin/mlds_check.R2"
+MLDS_HOSTS=`/usr/local/bin/listgroup spsprod`
+OTHER_HOSTS="goliath sparc10 stealth mlfire"
+HOSTS="$MLDS_HOSTS $OTHER_HOSTS"
+SYB_HOSTS="mlds_db4_1 mlds_db4_2 mlds_db4_3 mlds_db4_4 mlds_db4_5 goliath"
+AS_HOST="mlds_as401"
+PS_HOST="mlds_ps401"
+DATE=`date +%m%d%y`
+HOUR=`date +%H`
+MIN=`date +%M`
+DAY=`date +%w`
+START_TIME=7
+STOP_TIME=17
+HOST=`hostname`
+MAIL_LIST="mlds_admin"
+LOGFILE="/tmp/mlds_check_$DATE.log"
+TMPFILE="/tmp/mlds_check_$DATE.tmp"
+ERRLOG="/tmp/mlds_check_$DATE.err"
+BEEP="/usr/local/bin/beep"
+BEEP_PING="sysdoc"
+BEEP_PING_ESC="sysdoc,gvega,scertoma"
+BEEP_AS="sysdoc,vincent"
+BEEP_AS_ESC="sysdoc,vincent,gvega,scertoma"
+BEEP_PS="sysdoc,vincent"
+BEEP_PS_ESC="sysdoc,vincent,gvega,scertoma"
+BEEP_SYB="sysdoc,bobm,saragula"
+BEEP_SYB_ESC="sysdoc,bobm,saragula,gvega,scertoma"
+#
+>$LOGFILE
+#
+print "\nThis logfile file has been created  on `date` "  >> $LOGFILE
+print "\n\tHostname:    `hostname`" >> $LOGFILE
+print "\tScript name: $VERSION"  >> $LOGFILE
+print "\tLog file:    $LOGFILE\n"  >> $LOGFILE
+print "It depicts the status of mlds production processes" >> $LOGFILE
+print "and availability of system resources. - SWM\n\n"  >> $LOGFILE
+#
+#
+while [ $HOUR -gt $START_TIME ] && [ $HOUR -lt $STOP_TIME ]
+do
+if  [ $HOUR -eq 7 ] && [ $MIN -eq 15 ]; then
+	cat $LOGFILE |/usr/ucb/mail -s "mlds Prod Status for `date`" mlds_admin >> $LOGFILE
+fi
+if  [ $MIN -eq 0 ] ||  [ $MIN -eq 30 ]; then
+	ping_hosts >> $LOGFILE  2>&1
+	check_as >> $LOGFILE  2>&1
+	check_ps >> $LOGFILE  2>&1
+	check_syb >> $LOGFILE  2>&1
+fi
+print "\n`date`\tSleeping until next 30 minute cycle..." >> $LOGFILE  2>&1
+sleep 45
+HOUR=`date +%H`
+MIN=`date +%M`
+done
+print "\n`date`\tFinished monitoring mlds Production environment\n" >> $LOGFILE  2>&1
+##################################################################
+## DONE
+##################################################################
